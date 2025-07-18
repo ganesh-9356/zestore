@@ -50,6 +50,17 @@ router.get("/login",async (req,res)=>{
     console.log("user miss");
    }
 });
+router.get("/profile/:email",async (req,res)=>{
+  const Email = req.params.email;
+   try{
+     const db  = req.db;
+    const users =  db.collection("users");
+    const userdata = await users.find({email:Email}).toArray();
+    res.send(userdata);
+   }catch(err){
+    console.log("user miss");
+   }
+});
 
 router.get("/login/:email/:password", async (req, res) => {
   const { username ,mobile,email,password } = req.params;
