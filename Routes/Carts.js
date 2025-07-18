@@ -1,27 +1,28 @@
 import express from "express";
-import { Db } from "mongodb";
-
 const router = express.Router();
 
-router.get("/carts", async (req,res)=>{
-const db = req.db;
-const cartsColl = await db.collection("carts").find().toArray();
-res.send(cartsColl);
-res.end();
-});
-router.get("/carts/:emailid", async (req,res)=>{
-const db = req.db;
-const cartsColl = await db.collection("carts").find({email:req.params.emailid}).toArray();
-res.send(cartsColl);
-res.end();
+// GET: Get all cart items
+router.get("/carts", async (req, res) => {
+  const db = req.db;
+  const cartsColl = await db.collection("carts").find().toArray();
+  res.send(cartsColl);
+  res.end();
 });
 
+// GET: Get cart items by email
+router.get("/carts/:emailid", async (req, res) => {
+  const db = req.db;
+  const cartsColl = await db.collection("carts").find({ email: req.params.emailid }).toArray();
+  res.send(cartsColl);
+  res.end();
+});
 
+// DELETE: Remove cart item by ID
 router.delete("/carts/:id", async (req, res) => {
   const db = req.db;
   try {
     const id = parseInt(req.params.id);
-    const result = await db.collection("carts").deleteOne({ id: id }); // Match by `id` field
+    const result = await db.collection("carts").deleteOne({ id });
 
     if (result.deletedCount === 1) {
       res.json({ success: true, message: "Cart item deleted successfully" });
@@ -34,30 +35,30 @@ router.delete("/carts/:id", async (req, res) => {
   }
 });
 
+// POST: Add new cart item
+router.post("/carts", async (req, res) => {
+  const db = req.db;
+  const { id, title, price, category, image, quantity, description, email } = req.body;
 
-router.post("/carts", async (req,res)=>{
-const db = req.db;
-const {id,title,price,category,image,quantity,description} = req.body;
-const cartsColl = await db.collection("carts").insertOne(
-    {
-  id,
-  title, 
-  price,
-  category,
-  image,
-  quantity,
-  description
-}
-);
-res.send("Carts Products add..");
-res.end()
+  await db.collection("carts").insertOne({
+    id,
+    title,
+    price,
+    category,
+    image,
+    quantity,
+    description,
+    email,
+  });
+
+  res.send("Cart product added.");
+  res.end();
 });
 
-// PUT: Update quantity (add/remove) and return updated cart
-// PUT /carts/:id
+// PUT: Update quantity (add or remove)
 router.put("/carts/:id", async (req, res) => {
   const db = req.db;
-  const { id } = req.params;
+  const id = parseInt(req.params.id);
   const { action } = req.body;
 
   try {
@@ -85,7 +86,7 @@ router.put("/carts/:id", async (req, res) => {
       );
     }
 
-    // ✅ Return the updated cart list
+    // Return updated cart list
     const updatedCart = await cartsCollection.find().toArray();
     res.json(updatedCart);
 
@@ -94,6 +95,5 @@ router.put("/carts/:id", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
-
 
 export default router;
