@@ -29,7 +29,7 @@ routes.post("/products", async (req, res) => {
 // ---------- READ (GET) ----------
 routes.get("/products", async (req, res) => {
   const db = req.db;
-  const products = await db.collection("products").find().toArray();
+  const products = await db.collection("Products").find().toArray();
   res.send(products);
 });
 
