@@ -54,37 +54,44 @@ res.end()
 });
 
 // PUT: Update quantity (add/remove) and return updated cart
+// PUT /carts/:id
 router.put("/carts/:id", async (req, res) => {
   const db = req.db;
-  const id = req.params.id;
+  const { id } = req.params;
   const { action } = req.body;
 
   try {
-    const cartItem = await db.collection("carts").findOne({ id });
+    const cartsCollection = db.collection("carts");
+    const cartItem = await cartsCollection.findOne({ id });
+
     if (!cartItem) {
-      return res.status(404).send({ message: "Product not found" });
+      return res.status(404).json({ error: "Item not found" });
     }
-    if (action === 'add') {
-      await db.collection("carts").updateOne({ id }, { $inc: { quantity: 1 } });
-    } else if (action === 'remove') {
-      if (cartItem.quantity <= 1) {
-        await db.collection("carts").deleteOne({ id });
-      } else {
-        await db.collection("carts").updateOne({ id }, { $inc: { quantity: -1 } });
-      }
+
+    let updatedQty = cartItem.quantity || 1;
+
+    if (action === "add") {
+      updatedQty += 1;
+    } else if (action === "remove") {
+      updatedQty -= 1;
+    }
+
+    if (updatedQty <= 0) {
+      await cartsCollection.deleteOne({ id });
     } else {
-      return res.status(400).send({ message: "Invalid action" });
+      await cartsCollection.updateOne(
+        { id },
+        { $set: { quantity: updatedQty } }
+      );
     }
-    // After update, return the full updated cart
-    const updatedCart = await db.collection("carts").find().toArray();
-    return res.send({
-      message: "Cart updated successfully",
-      cart: updatedCart
-    });
+
+    // ✅ Return the updated cart list
+    const updatedCart = await cartsCollection.find().toArray();
+    res.json(updatedCart);
 
   } catch (error) {
-    console.error("Error updating cart:", error);
-    return res.status(500).send({ message: "Internal server error" });
+    console.error("PUT /carts/:id error", error);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
