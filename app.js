@@ -11,7 +11,7 @@ import profiles from "./Routes/Profiles.js";
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 6000;
-
+console.log("OK");
 // MongoDB connection
 const db = await MongoConnect();
 
