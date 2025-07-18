@@ -47,7 +47,7 @@ router.get("/login",async (req,res)=>{
      const db  = req.db;
     const users =  db.collection("users");
     const userdata = await users.find().toArray();
-    res.send("user Added ...");
+    res.send(userdata);
    }catch(err){
     console.log("user miss");
    }

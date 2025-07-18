@@ -49,7 +49,7 @@ routes.put("/products/:id", async (req, res) => {
     const updateResult = await db.collection("Products").updateOne(
       { id: id },
       {
-        $set: {
+        $set:{
           title: req.body.title,
           price: parseFloat(req.body.price),
           category: req.body.category,
