@@ -36,9 +36,7 @@ router.post('/login', async (req, res) => {
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: 'Internal server error' });
-    } finally {
-        await client.close();
-    }
+    } 
 });
 
 router.get("/login",async (req,res)=>{
