@@ -55,6 +55,22 @@ router.post("/carts", async (req, res) => {
   res.end();
 });
 
+
+// Clear all cart items
+router.delete("/carts/clear", async (req, res) => {
+  const db = req.db;
+  try {
+    const result = await db.collection("carts").deleteMany({});
+    res.json({ success: true, message: `${result.deletedCount} cart items deleted.` });
+  } catch (err) {
+    console.error("Error clearing cart:", err);
+    res.status(500).json({ success: false, message: "Failed to clear cart." });
+  }
+});
+
+
+
+
 // PUT: Update quantity (add or remove)
 router.put("/carts/:id", async (req, res) => {
   const db = req.db;
@@ -95,5 +111,26 @@ router.put("/carts/:id", async (req, res) => {
     res.status(500).json({ error: "Server error" });
   }
 });
+
+
+// PUT: Set quantity = 1 for all cart items
+router.put("/carts-update-all-quantity", async (req, res) => {
+  const db = req.db;
+
+  try {
+    const result = await db.collection("carts").updateMany({}, { $set: { quantity: 1 } });
+    res.json({
+      success: true,
+      message: `Updated ${result.modifiedCount} items to quantity: 1`,
+    });
+  } catch (err) {
+    console.error("Bulk update error:", err);
+    res.status(500).json({ success: false, message: "Server Error" });
+  }
+});
+
+
+
+
 
 export default router;
