@@ -17,6 +17,7 @@
     "mime-types": "^3.0.1",
     "mongodb": "^6.17.0",
     "multer": "^2.0.1",
-    "mysql": "^2.18.1"
+    "mysql": "^2.18.1",
+    "nodemailer": "^7.0.5"
   }
 }
