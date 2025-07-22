@@ -8,6 +8,7 @@ import register from "./Routes/Register.js";
 import carts from "./Routes/Carts.js";
 import profiles from "./Routes/Profiles.js";
 import nodemailer from "nodemailer";
+import bcrypt from "bcrypt";
 
 dotenv.config();
 const app = express();
@@ -89,6 +90,35 @@ app.post("/verify-otp", (req, res) => {
         res.status(400).send({ error: "Invalid OTP" });
     }
 });
+
+app.post("/reset-password", async (req, res) => {
+    const { email, newPassword } = req.body;
+
+    if (!otpStore[email]) {
+        return res.status(400).send({ error: "OTP not verified or expired" });
+    }
+
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+        // ✅ याच db वापरा (जे तुम्ही await MongoConnect() ने घेतलंत)
+        const result = await db.collection("UserLogin").updateOne(
+            { email: email },
+            { $set: { password: hashedPassword } }
+        );
+
+        if (result.modifiedCount === 0) {
+            return res.status(404).send({ error: "User not found or password unchanged" });
+        }
+
+        delete otpStore[email]; // OTP delete करा
+
+        res.send({ message: "Password updated successfully" });
+    } catch (err) {
+        res.status(500).send({ error: "Error updating password", details: err });
+    }
+});
+
 
 // Start server
 app.listen(PORT, () => {
