@@ -72,6 +72,9 @@ console.log(otp)
     }, (err, info) => { 
         if (err) return res.status(500).send({ error: "Failed to send OTP", details: err });
         res.send({ message: "OTP sent successfully" });
+        console.log("Sending OTP to:", email);
+console.log("Configured email:", process.env.Send_Email);
+
     });
 });
 
