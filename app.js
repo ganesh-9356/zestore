@@ -83,13 +83,15 @@ console.log("Configured email:", process.env.Send_Email);
 
 // ✅ 2. Verify OTP
 app.post("/verify-otp", (req, res) => {
-    const { email, otp } = req.body;
-    if (otpStore[email] && otpStore[email] === otp) {
-        res.send({ message: "OTP Verified" });
-    } else {
-        res.status(400).send({ error: "Invalid OTP" });
-    }
+  const { email, otp } = req.body;
+  if (otpStore[email] && otpStore[email] === otp) {
+    delete otpStore[email]; // ✅ Clear OTP once used
+    res.send({ message: "OTP Verified" });
+  } else {
+    res.status(400).send({ error: "Invalid OTP" });
+  }
 });
+
 
 app.post("/reset-password", async (req, res) => {
     const { email, newPassword } = req.body;
