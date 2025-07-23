@@ -1,13 +1,13 @@
 import express from "express";
-import { Db } from "mongodb";
+
 
 const router = express.Router();
 
-router.post("/register",async (req,res)=>{
+router.post("/zestoreregister",async (req,res)=>{
     const {userid,username,email,mobile,password} = req.body;
    try{
      const db  = req.db;
-    const users =  db.collection("users");
+    const users =  db.collection("zestoreusers");
     const userdata = await users.insertOne({userid,username,email,mobile,password});
     res.send("user Added ...");
    }catch(err){
@@ -15,7 +15,7 @@ router.post("/register",async (req,res)=>{
    }
 });
 
-router.post('/login', async (req, res) => {
+router.post('/zestorelogin', async (req, res) => {
     try {
       
         const database = req.db;
@@ -39,22 +39,22 @@ router.post('/login', async (req, res) => {
     } 
 });
 
-router.get("/login",async (req,res)=>{
+router.get("/zestorelogin",async (req,res)=>{
   
    try{
      const db  = req.db;
-    const users =  db.collection("users");
+    const users =  db.collection("zestoreusers");
     const userdata = await users.find().toArray();
     res.send(userdata);
    }catch(err){
     console.log("user miss");
    }
 });
-router.get("/profile/:email",async (req,res)=>{
+router.get("/zestoreprofile/:email",async (req,res)=>{
   const Email = req.params.email;
    try{
      const db  = req.db;
-    const users =  db.collection("users");
+    const users =  db.collection("zestoreusers");
     const userdata = await users.find({email:Email}).toArray();
     res.send(userdata);
    }catch(err){
@@ -62,12 +62,12 @@ router.get("/profile/:email",async (req,res)=>{
    }
 });
 
-router.get("/login/:email/:password", async (req, res) => {
+router.get("/zestorelogin/:email/:password", async (req, res) => {
   const { username ,mobile,email,password } = req.params;
 
   try {
     const db = req.db;
-    const users = db.collection("users");
+    const users = db.collection("zestoreusers");
 
     const user = await users.findOne({ email, password });
 

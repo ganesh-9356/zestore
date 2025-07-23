@@ -2,27 +2,27 @@ import express from "express";
 const router = express.Router();
 
 // GET: Get all cart items
-router.get("/carts", async (req, res) => {
+router.get("/zestorecarts", async (req, res) => {
   const db = req.db;
-  const cartsColl = await db.collection("carts").find().toArray();
+  const cartsColl = await db.collection("zestorecarts").find().toArray();
   res.send(cartsColl);
   res.end();
 });
 
 // GET: Get cart items by email
-router.get("/carts/:emailid", async (req, res) => {
+router.get("/zestorecarts/:emailid", async (req, res) => {
   const db = req.db;
-  const cartsColl = await db.collection("carts").find({ email: req.params.emailid }).toArray();
+  const cartsColl = await db.collection("zestorecarts").find({ email: req.params.emailid }).toArray();
   res.send(cartsColl);
   res.end();
 });
 
 // DELETE: Remove cart item by ID
-router.delete("/carts/:id", async (req, res) => {
+router.delete("/zestorecarts/:id", async (req, res) => {
   const db = req.db;
   try {
     const id = parseInt(req.params.id);
-    const result = await db.collection("carts").deleteOne({ id });
+    const result = await db.collection("zestorecarts").deleteOne({ id });
 
     if (result.deletedCount === 1) {
       res.json({ success: true, message: "Cart item deleted successfully" });
@@ -36,11 +36,11 @@ router.delete("/carts/:id", async (req, res) => {
 });
 
 // POST: Add new cart item
-router.post("/carts", async (req, res) => {
+router.post("/zestorecarts", async (req, res) => {
   const db = req.db;
   const { id, title, price, category, image, quantity, description, email } = req.body;
 
-  await db.collection("carts").insertOne({
+  await db.collection("zestorecarts").insertOne({
     id,
     title,
     price,
@@ -57,10 +57,10 @@ router.post("/carts", async (req, res) => {
 
 
 // Clear all cart items
-router.delete("/carts/clear", async (req, res) => {
+router.delete("/zestorecarts/clear", async (req, res) => {
   const db = req.db;
   try {
-    const result = await db.collection("carts").deleteMany({});
+    const result = await db.collection("zestorecarts").deleteMany({});
     res.json({ success: true, message: `${result.deletedCount} cart items deleted.` });
   } catch (err) {
     console.error("Error clearing cart:", err);
@@ -72,13 +72,13 @@ router.delete("/carts/clear", async (req, res) => {
 
 
 // PUT: Update quantity (add or remove)
-router.put("/carts/:id", async (req, res) => {
+router.put("/zestorecarts/:id", async (req, res) => {
   const db = req.db;
   const id = parseInt(req.params.id);
   const { action } = req.body;
 
   try {
-    const cartsCollection = db.collection("carts");
+    const cartsCollection = db.collection("zestorecarts");
     const cartItem = await cartsCollection.findOne({ id });
 
     if (!cartItem) {
@@ -107,7 +107,7 @@ router.put("/carts/:id", async (req, res) => {
     res.json(updatedCart);
 
   } catch (error) {
-    console.error("PUT /carts/:id error", error);
+    console.error("PUT /zestorecarts/:id error", error);
     res.status(500).json({ error: "Server error" });
   }
 });

@@ -4,16 +4,16 @@ import dotenv from "dotenv";
 import { MongoConnect } from "./config/MongoDB.js";
 import productsdata from "./Routes/Products.js";
 import categoriesdata from "./Routes/Categories.js";
-import register from "./Routes/Register.js";
-import carts from "./Routes/Carts.js";
-import profiles from "./Routes/Profiles.js";
+import zestoreregister from "./Routes/Register.js";
+import zestorecarts from "./Routes/Carts.js";
+import zestoreprofiles from "./Routes/Profiles.js";
 import nodemailer from "nodemailer";
 import bcrypt from "bcrypt";
 
 dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 6000;
-console.log("OK");
+
 // MongoDB connection
 const db = await MongoConnect();
 
@@ -28,102 +28,98 @@ app.use((req, res, next) => {
   next();
 });
 
-// 🔴 REMOVE static image folder (no file access anymore)
-// app.use("/images", express.static("./images"));
-
 // Routes
 app.use("/", productsdata);
 app.use("/", categoriesdata);
-app.use("/", register);
-app.use("/", carts);
-app.use("/", profiles);
+app.use("/", zestoreregister);
+app.use("/", zestorecarts);
+app.use("/", zestoreprofiles);
 
+// --------------------------------------  🔐 Reset Password with OTP Flow  --------------------------------------------
 
-//--------------------------------------  reset Password  --------------------------------------------
-
-
-// Configure Email Transporter
- const transporter = nodemailer.createTransport({
-        host: process.env.Email_Host ,
-        port: process.env.Email_Port ,
-        secure: true,
-        auth: {
-            user: process.env.Send_Email,
-            pass: process.env.Email_Pass, // Replace with your App Password
-        },
-    });
-
-// Store OTPs temporarily (Ideally, store in DB)
+// ✅ Temporary in-memory OTP store (You can replace with DB if needed)
 const otpStore = {};
 
-
-
-// ✅ 1. Send OTP to User's Email
-app.post("/send-otp", (req, res) => {
-    const { email } = req.body;
-    const otp = Math.floor(100000 + Math.random() * 900000).toString(); // Generate 6-digit OTP
-    otpStore[email] = otp; // Save OTP temporarily
-console.log(otp)
-    // Send OTP via Email
-    transporter.sendMail({
-        from: process.env.Send_Email,
-        to: email,
-        subject: "Password Reset OTP",
-        text: `Your OTP is: ${otp}`,
-    }, (err, info) => { 
-        if (err) return res.status(500).send({ error: "Failed to send OTP", details: err });
-        res.send({ message: "OTP sent successfully" });
-        console.log("Sending OTP to:", email);
-console.log("Configured email:", process.env.Send_Email);
-
-    });
+// ✅ Nodemailer Email Transporter Setup
+const transporter = nodemailer.createTransport({
+  host: process.env.Email_Host,
+  port: process.env.Email_Port,
+  secure: true,
+  auth: {
+    user: process.env.Send_Email,
+    pass: process.env.Email_Pass,
+  },
 });
 
+// ✅ Send OTP
+app.post("/send-otp", async (req, res) => {
+  const { email } = req.body;
 
+  if (!email) return res.status(400).send({ error: "Email is required" });
 
-// ✅ 2. Verify OTP
-app.post("/verify-otp", (req, res) => {
-  const { email, otp } = req.body;
-  if (otpStore[email] && otpStore[email] === otp) {
-    delete otpStore[email]; // ✅ Clear OTP once used
-    res.send({ message: "OTP Verified" });
-  } else {
-    res.status(400).send({ error: "Invalid OTP" });
+  const otp = Math.floor(100000 + Math.random() * 900000).toString();
+  otpStore[email] = { otp, createdAt: Date.now(), verified: false };
+
+  try {
+    await transporter.sendMail({
+      from: process.env.Send_Email,
+      to: email,
+      subject: "Reset Password OTP",
+      text: `Your OTP for password reset is: ${otp}`,
+    });
+
+    console.log(`OTP sent to ${email}: ${otp}`);
+    res.send({ message: "OTP sent to your email" });
+  } catch (error) {
+    console.error("Email sending error:", error);
+    res.status(500).send({ error: "Failed to send OTP", details: error });
   }
 });
 
+// ✅ Verify OTP
+app.post("/verify-otp", (req, res) => {
+  const { email, otp } = req.body;
 
+  const record = otpStore[email];
+  if (!record) return res.status(400).send({ error: "OTP expired or not found" });
+
+  if (record.otp !== otp) {
+    return res.status(400).send({ error: "Invalid OTP" });
+  }
+
+  otpStore[email].verified = true;
+  res.send({ message: "OTP verified successfully" });
+});
+
+// ✅ Reset Password
 app.post("/reset-password", async (req, res) => {
-    const { email, newPassword } = req.body;
+  const { email, newPassword } = req.body;
+  const record = otpStore[email];
 
-    if (!otpStore[email]) {
-        return res.status(400).send({ error: "OTP not verified or expired" });
+  if (!record || !record.verified) {
+    return res.status(400).send({ error: "OTP not verified or expired" });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    const result = await db.collection("UserLogin").updateOne(
+      { email: email },
+      { $set: { password: hashedPassword } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).send({ error: "User not found or password unchanged" });
     }
 
-    try {
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-        // ✅ याच db वापरा (जे तुम्ही await MongoConnect() ने घेतलंत)
-        const result = await db.collection("UserLogin").updateOne(
-            { email: email },
-            { $set: { password: hashedPassword } }
-        );
-
-        if (result.modifiedCount === 0) {
-            return res.status(404).send({ error: "User not found or password unchanged" });
-        }
-
-        delete otpStore[email]; // OTP delete करा
-
-        res.send({ message: "Password updated successfully" });
-    } catch (err) {
-        res.status(500).send({ error: "Error updating password", details: err });
-    }
+    delete otpStore[email]; // Clean up OTP after success
+    res.send({ message: "Password updated successfully" });
+  } catch (err) {
+    res.status(500).send({ error: "Failed to reset password", details: err.message });
+  }
 });
 
-
-// Start server
+// -------------------------------------- Start Server --------------------------------------------
 app.listen(PORT, () => {
-  console.log(`Server is running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
- 

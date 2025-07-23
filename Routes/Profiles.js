@@ -4,13 +4,13 @@ import { Db } from "mongodb";
 const router = express.Router();
 
 
-router.get("/profiles", async (req,res)=>{
+router.get("/zestoreprofiles", async (req,res)=>{
 const db = req.db;
-const cartsColl = await db.collection("profiles").find().toArray();
+const cartsColl = await db.collection("zestoreprofiles").find().toArray();
 res.send(cartsColl);
 res.end();
 });
-router.post("/profiles", async (req, res) => {
+router.post("/zestoreprofiles", async (req, res) => {
   const db = req.db;
   try {
     const {
@@ -31,7 +31,7 @@ router.post("/profiles", async (req, res) => {
       pincode
     };
 
-    await db.collection("profiles").insertOne(profile);
+    await db.collection("zestoreprofiles").insertOne(profile);
 
     res.send("Profile uploaded successfully...");
   } catch (err) {
@@ -42,12 +42,12 @@ router.post("/profiles", async (req, res) => {
 
 
 
-router.delete("/profiles/:pincode", async (req, res) => {
+router.delete("/zestoreprofiles/:pincode", async (req, res) => {
   const db = req.db;
   try {
     const pincode = req.params.id;
 
-    const result = await db.collection("profiles").deleteOne({
+    const result = await db.collection("zestoreprofiles").deleteOne({
       pincode: pincode
     });
 
