@@ -19,7 +19,7 @@ router.post('/zestorelogin', async (req, res) => {
     try {
       
         const database = req.db;
-        const usersCollection = await database.collection("users");
+        const usersCollection = await database.collection("zestoreusers");
 
         const { email, password } = req.body;
         if (!email || !password) {
