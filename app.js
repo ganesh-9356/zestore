@@ -74,20 +74,25 @@ app.post("/send-otp", async (req, res) => {
   }
 });
 
-// ✅ Verify OTP
-app.post("/verify-otp", (req, res) => {
+
+// ✅ Verify OTP (FIXED)
+app.post("/verify-otp", async (req, res) => {
   const { email, otp } = req.body;
 
-  const record = otpStore[email];
-  if (!record) return res.status(400).send({ error: "OTP expired or not found" });
-
-  if (record.otp !== otp) {
-    return res.status(400).send({ error: "Invalid OTP" });
+  if (!email || !otp) {
+    return res.status(400).json({ error: "Email and OTP are required" });
   }
 
-  otpStore[email].verified = true;
-  res.send({ message: "OTP verified successfully" });
+  const record = otpStore[email];
+
+  if (!record || record.otp !== otp) {
+    return res.status(400).json({ error: "Invalid OTP" });
+  }
+
+  record.verified = true;
+  res.status(200).json({ message: "OTP Verified" });
 });
+
 
 // ✅ Reset Password
 app.post("/reset-password", async (req, res) => {
