@@ -12,35 +12,33 @@ import bcrypt from "bcrypt";
 
 dotenv.config();
 const app = express();
+const PORT = process.env.PORT || 4000;
 
-
-// MongoDB connection
+// ✅ MongoDB connection
 const db = await MongoConnect();
 
-// Middleware
+// ✅ Middleware
 app.use(cors());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// Attach DB to request
+// ✅ Attach DB to request
 app.use((req, res, next) => {
   req.db = db;
   next();
 });
 
-// Routes
+// ✅ Routes
 app.use("/", productsdata);
 app.use("/", categoriesdata);
 app.use("/", zestoreregister);
 app.use("/", zestorecarts);
 app.use("/", zestoreprofiles);
 
-// --------------------------------------  🔐 Reset Password with OTP Flow  --------------------------------------------
-
-// ✅ Temporary in-memory OTP store (You can replace with DB if needed)
+// ✅ In-memory OTP store
 const otpStore = {};
 
-// ✅ Nodemailer Email Transporter Setup
+// ✅ Nodemailer setup
 const transporter = nodemailer.createTransport({
   host: process.env.Email_Host,
   port: process.env.Email_Port,
@@ -68,10 +66,10 @@ app.post("/send-otp", async (req, res) => {
       text: `Your OTP for password reset is: ${otp}`,
     });
 
-    console.log(`OTP sent to ${email}: ${otp}`);
+    console.log(`✅ OTP sent to ${email}: ${otp}`);
     res.send({ message: "OTP sent to your email" });
   } catch (error) {
-    console.error("Email sending error:", error);
+    console.error("❌ Email sending error:", error);
     res.status(500).send({ error: "Failed to send OTP", details: error });
   }
 });
@@ -81,29 +79,15 @@ app.post("/verify-otp", (req, res) => {
   const { email, otp } = req.body;
 
   const record = otpStore[email];
+  if (!record) return res.status(400).send({ error: "OTP expired or not found" });
 
-  if (!record) {
-    return res.status(400).send({ error: "OTP expired or not found" });
-  }
-
-  const { otp: storedOtp, createdAt } = record;
-
-  // OTP expires after 5 minutes (300,000 ms)
-  if (Date.now() - createdAt > 5 * 60 * 1000) {
-    delete otpStore[email]; // remove expired OTP
-    return res.status(400).send({ error: "OTP expired" });
-  }
-
-  if (storedOtp !== otp) {
+  if (record.otp !== otp) {
     return res.status(400).send({ error: "Invalid OTP" });
   }
 
   otpStore[email].verified = true;
-  delete otpStore[email]; // Optional: delete OTP after verification
-
   res.send({ message: "OTP verified successfully" });
 });
-
 
 // ✅ Reset Password
 app.post("/reset-password", async (req, res) => {
@@ -117,8 +101,8 @@ app.post("/reset-password", async (req, res) => {
   try {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-    const result = await db.collection("UserLogin").updateOne(
-      { email: email },
+    const result = await db.collection("zestoreusers").updateOne(
+      { email },
       { $set: { password: hashedPassword } }
     );
 
@@ -126,16 +110,14 @@ app.post("/reset-password", async (req, res) => {
       return res.status(404).send({ error: "User not found or password unchanged" });
     }
 
-    delete otpStore[email]; // Clean up OTP after success
+    delete otpStore[email];
     res.send({ message: "Password updated successfully" });
   } catch (err) {
     res.status(500).send({ error: "Failed to reset password", details: err.message });
   }
 });
 
-// -------------------------------------- Start Server --------------------------------------------
-const PORT = process.env.PORT || 4000;
-
+// ✅ Start server
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on PORT ${PORT}`);
+  console.log(`🚀 Server running at http://localhost:${PORT}`);
 });
