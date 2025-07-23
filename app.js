@@ -12,7 +12,7 @@ import bcrypt from "bcrypt";
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 6000;
+
 
 // MongoDB connection
 const db = await MongoConnect();
@@ -134,6 +134,8 @@ app.post("/reset-password", async (req, res) => {
 });
 
 // -------------------------------------- Start Server --------------------------------------------
+const PORT = process.env.PORT || 4000;
+
 app.listen(PORT, () => {
-  console.log(`🚀 Server running at http://localhost:${PORT}`);
+  console.log(`🚀 Server running on PORT ${PORT}`);
 });
