@@ -114,11 +114,11 @@ router.put("/zestorecarts/:id", async (req, res) => {
 
 
 // PUT: Set quantity = 1 for all cart items
-router.put("/carts-update-all-quantity", async (req, res) => {
+router.put("/zestorecarts-update-all-quantity", async (req, res) => {
   const db = req.db;
 
   try {
-    const result = await db.collection("carts").updateMany({}, { $set: { quantity: 1 } });
+    const result = await db.collection("zestorecarts").updateMany({}, { $set: { quantity: 1 } });
     res.json({
       success: true,
       message: `Updated ${result.modifiedCount} items to quantity: 1`,
