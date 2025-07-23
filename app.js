@@ -81,15 +81,29 @@ app.post("/verify-otp", (req, res) => {
   const { email, otp } = req.body;
 
   const record = otpStore[email];
-  if (!record) return res.status(400).send({ error: "OTP expired or not found" });
 
-  if (record.otp !== otp) {
+  if (!record) {
+    return res.status(400).send({ error: "OTP expired or not found" });
+  }
+
+  const { otp: storedOtp, createdAt } = record;
+
+  // OTP expires after 5 minutes (300,000 ms)
+  if (Date.now() - createdAt > 5 * 60 * 1000) {
+    delete otpStore[email]; // remove expired OTP
+    return res.status(400).send({ error: "OTP expired" });
+  }
+
+  if (storedOtp !== otp) {
     return res.status(400).send({ error: "Invalid OTP" });
   }
 
   otpStore[email].verified = true;
+  delete otpStore[email]; // Optional: delete OTP after verification
+
   res.send({ message: "OTP verified successfully" });
 });
+
 
 // ✅ Reset Password
 app.post("/reset-password", async (req, res) => {
