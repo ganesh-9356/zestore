@@ -23,10 +23,11 @@ router.delete("/zestorecarts/:id",async (req, res) =>{
 // POST: Add product to cart without session/email or custom id
 router.post("/zestorecarts", async (req, res) => {
   const db = req.db;
-  const { title, price, category, image, quantity, description } = req.body;
 
-  // Get session ID or fallback
-  const sessionOrEmail = req.session?.userId || req.body.sessionOrEmail || "guest";
+  const { title, price, category, image, quantity, description, sessionOrEmail } = req.body;
+
+  // जर session वरून userId मिळत असेल तर घ्या, नाहीतर req.body मधून sessionOrEmail घ्या
+  const userSessionOrEmail = req.session?.userId || sessionOrEmail || "guest";
 
   try {
     const result = await db.collection("zestorecarts").insertOne({
@@ -36,20 +37,25 @@ router.post("/zestorecarts", async (req, res) => {
       image,
       quantity,
       description,
-      sessionOrEmail,   // <-- Important
+      sessionOrEmail: userSessionOrEmail,  // ← आता हे स्टोअर केलं जातंय
       addedAt: new Date()
     });
 
     res.status(201).json({
       success: true,
-      message: "Cart product added successfully.",
+      message: "Cart item successfully added.",
       productId: result.insertedId
     });
   } catch (err) {
     console.error("Insert error:", err);
-    res.status(500).json({ success: false, message: "Failed to add to cart." });
+    res.status(500).json({
+      success: false,
+      message: "Failed to add to cart.",
+      error: err.message
+    });
   }
 });
+
 
 // DELETE: Clear all cart items for session or user
 router.delete("/zestorecarts/clear", async (req, res) => {
