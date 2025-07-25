@@ -25,6 +25,9 @@ router.post("/zestorecarts", async (req, res) => {
   const db = req.db;
   const { title, price, category, image, quantity, description } = req.body;
 
+  // Get session ID or fallback
+  const sessionOrEmail = req.session?.userId || req.body.sessionOrEmail || "guest";
+
   try {
     const result = await db.collection("zestorecarts").insertOne({
       title,
@@ -33,6 +36,7 @@ router.post("/zestorecarts", async (req, res) => {
       image,
       quantity,
       description,
+      sessionOrEmail,   // <-- Important
       addedAt: new Date()
     });
 
