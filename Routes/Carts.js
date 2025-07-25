@@ -1,51 +1,28 @@
 import express from "express";
 const router = express.Router();
 
-// Middleware to get or assign guest session ID
-router.use((req, res, next) => {
-  if (!req.session.userId) {
-    req.session.userId = `guest_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
-  }
-  next();
-});
-
-// GET: Get all cart items for session or logged-in user
-router.get("/zestorecarts", async (req, res) => {
-  const db = req.db;
-  const emailOrSession = req.session.userId;
-  const cartsColl = await db.collection("zestorecarts").find({ sessionOrEmail: emailOrSession }).toArray();
-  res.send(cartsColl);
-});
-
-// GET: Get cart items by email (for logged-in user)
-router.get("/zestorecarts/:emailid", async (req, res) => {
-  const db = req.db;
-  const cartsColl = await db.collection("zestorecarts").find({ sessionOrEmail: req.params.emailid }).toArray();
-  res.send(cartsColl);
-});
 
 // DELETE: Remove cart item by ID
-router.delete("/zestorecarts/:id", async (req, res) => {
+router.delete("/zestorecarts/:id",async (req, res) =>{
   const db = req.db;
   try {
     const id = parseInt(req.params.id);
     const result = await db.collection("zestorecarts").deleteOne({ id, sessionOrEmail: req.session.userId });
 
-    if (result.deletedCount === 1) {
-      res.json({ success: true, message: "Cart item deleted successfully" });
+    if (result.deletedCount === 1){
+      res.json({success:true,message:"Cart item deleted successfully.." });
     } else {
       res.status(404).json({ success: false, message: "Cart item not found" });
     }
   } catch (err) {
     console.error("Delete error:", err);
-    res.status(500).json({ success: false, error: "Internal Server Error" });
+    res.status(500).json({ success : false, error: "Internal Server Error" });
   }
 });
 
-// POST: Add new cart item
-router.post("/zestorecarts", async (req, res) => {
+router.post("/zestorecarts", async (req, res)=>{
   const db = req.db;
-  const { id, title, price, category, image, quantity, description } = req.body;
+  const { id, title,price,category, image, quantity, description } = req.body;
 
   const sessionOrEmail = req.session.userId;
 
