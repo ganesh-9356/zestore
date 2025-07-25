@@ -20,24 +20,31 @@ router.delete("/zestorecarts/:id",async (req, res) =>{
   }
 });
 
-router.post("/zestorecarts", async (req, res)=>{
+// POST: Add product to cart without session/email or custom id
+router.post("/zestorecarts", async (req, res) => {
   const db = req.db;
-  const { id, title,price,category, image, quantity, description } = req.body;
+  const { title, price, category, image, quantity, description } = req.body;
 
-  const sessionOrEmail = req.session.userId;
+  try {
+    const result = await db.collection("zestorecarts").insertOne({
+      title,
+      price,
+      category,
+      image,
+      quantity,
+      description,
+      addedAt: new Date()
+    });
 
-  await db.collection("zestorecarts").insertOne({
-    id,
-    title,
-    price,
-    category,
-    image,
-    quantity,
-    description,
-    sessionOrEmail
-  });
-
-  res.send("Cart product added.");
+    res.status(201).json({
+      success: true,
+      message: "Cart product added successfully.",
+      productId: result.insertedId
+    });
+  } catch (err) {
+    console.error("Insert error:", err);
+    res.status(500).json({ success: false, message: "Failed to add to cart." });
+  }
 });
 
 // DELETE: Clear all cart items for session or user
@@ -79,7 +86,7 @@ router.put("/zestorecarts/:id", async (req, res) => {
       await cartsCollection.deleteOne({ id, sessionOrEmail });
     } else {
       await cartsCollection.updateOne(
-        { id, sessionOrEmail },
+        
         { $set: { quantity: updatedQty } }
       );
     }
