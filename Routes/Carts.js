@@ -1,43 +1,38 @@
 import express from "express";
 const router = express.Router();
 
-
-// DELETE: Remove cart item by ID
-router.delete("/zestorecarts/:id",async (req, res) =>{
+// ✅ DELETE: Remove cart item by ID
+router.delete("/zestorecarts/:id", async (req, res) => {
   const db = req.db;
   try {
     const id = parseInt(req.params.id);
-    const result = await db.collection("zestorecarts").deleteOne({ id, sessionOrEmail: req.session.userId });
+    const result = await db.collection("zestorecarts").deleteOne({ id });
 
-    if (result.deletedCount === 1){
-      res.json({success:true,message:"Cart item deleted successfully.." });
+    if (result.deletedCount === 1) {
+      res.json({ success: true, message: "Cart item deleted successfully." });
     } else {
       res.status(404).json({ success: false, message: "Cart item not found" });
     }
   } catch (err) {
     console.error("Delete error:", err);
-    res.status(500).json({ success : false, error: "Internal Server Error" });
+    res.status(500).json({ success: false, error: "Internal Server Error" });
   }
 });
 
-// POST: Add product to cart without session/email or custom id
+// ✅ POST: Add product to cart (No session/email)
 router.post("/zestorecarts", async (req, res) => {
   const db = req.db;
-
-  const { title, price, category, image, quantity, description, sessionOrEmail } = req.body;
-
-  // जर session वरून userId मिळत असेल तर घ्या, नाहीतर req.body मधून sessionOrEmail घ्या
-  const userSessionOrEmail = req.session?.userId || sessionOrEmail || "guest";
+  const { id, title, price, category, image, quantity, description } = req.body;
 
   try {
     const result = await db.collection("zestorecarts").insertOne({
+      id,
       title,
       price,
       category,
       image,
       quantity,
       description,
-      sessionOrEmail: userSessionOrEmail,  // ← आता हे स्टोअर केलं जातंय
       addedAt: new Date()
     });
 
@@ -56,29 +51,39 @@ router.post("/zestorecarts", async (req, res) => {
   }
 });
 
+// ✅ GET: Fetch all cart items
+router.get("/zestorecarts", async (req, res) => {
+  const db = req.db;
+  try {
+    const cartItems = await db.collection("zestorecarts").find().toArray();
+    res.json(cartItems);
+  } catch (err) {
+    console.error("Fetch error:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch cart." });
+  }
+});
 
-// DELETE: Clear all cart items for session or user
+// ✅ DELETE: Clear entire cart (no session)
 router.delete("/zestorecarts/clear", async (req, res) => {
   const db = req.db;
   try {
-    const result = await db.collection("zestorecarts").deleteMany({ sessionOrEmail: req.session.userId });
+    const result = await db.collection("zestorecarts").deleteMany({});
     res.json({ success: true, message: `${result.deletedCount} cart items deleted.` });
   } catch (err) {
-    console.error("Error clearing cart:", err);
+    console.error("Clear error:", err);
     res.status(500).json({ success: false, message: "Failed to clear cart." });
   }
 });
 
-// PUT: Update quantity (add or remove)
+// ✅ PUT: Update quantity (add or remove)
 router.put("/zestorecarts/:id", async (req, res) => {
   const db = req.db;
   const id = parseInt(req.params.id);
   const { action } = req.body;
-  const sessionOrEmail = req.session.userId;
 
   try {
     const cartsCollection = db.collection("zestorecarts");
-    const cartItem = await cartsCollection.findOne({ id, sessionOrEmail });
+    const cartItem = await cartsCollection.findOne({ id });
 
     if (!cartItem) {
       return res.status(404).json({ error: "Item not found" });
@@ -93,30 +98,29 @@ router.put("/zestorecarts/:id", async (req, res) => {
     }
 
     if (updatedQty <= 0) {
-      await cartsCollection.deleteOne({ id, sessionOrEmail });
+      await cartsCollection.deleteOne({ id });
     } else {
       await cartsCollection.updateOne(
-        
+        { id },
         { $set: { quantity: updatedQty } }
       );
     }
 
-    const updatedCart = await cartsCollection.find({ sessionOrEmail }).toArray();
+    const updatedCart = await cartsCollection.find().toArray();
     res.json(updatedCart);
 
   } catch (error) {
-    console.error("PUT /zestorecarts/:id error", error);
+    console.error("PUT error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// PUT: Set quantity = 1 for all cart items
+// ✅ PUT: Set quantity = 1 for all cart items
 router.put("/zestorecarts-update-all-quantity", async (req, res) => {
   const db = req.db;
-
   try {
     const result = await db.collection("zestorecarts").updateMany(
-      { sessionOrEmail: req.session.userId },
+      {},
       { $set: { quantity: 1 } }
     );
     res.json({
