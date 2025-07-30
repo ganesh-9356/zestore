@@ -1,12 +1,69 @@
 import express from "express";
 const router = express.Router();
 
-// ✅ DELETE: Remove cart item by ID
+// ✅ POST: Add product to cart with user email
+router.post("/zestorecarts", async (req, res) => {
+  const db = req.db;
+  const { id, title, price, category, image, quantity, description, email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
+  try {
+    const result = await db.collection("zestorecarts").insertOne({
+      id,
+      title,
+      price,
+      category,
+      image,
+      quantity,
+      description,
+      email,
+      addedAt: new Date()
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Cart item successfully added.",
+      productId: result.insertedId
+    });
+  } catch (err) {
+    console.error("Insert error:", err);
+    res.status(500).json({ success: false, message: "Failed to add to cart." });
+  }
+});
+
+// ✅ GET: Fetch cart items for a specific email
+router.get("/zestorecarts", async (req, res) => {
+  const db = req.db;
+  const email = req.query.email;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
+  try {
+    const cartItems = await db.collection("zestorecarts").find({ email }).toArray();
+    res.json(cartItems);
+  } catch (err) {
+    console.error("Fetch error:", err);
+    res.status(500).json({ success: false, message: "Failed to fetch cart." });
+  }
+});
+
+// ✅ DELETE: Remove cart item by ID and email
 router.delete("/zestorecarts/:id", async (req, res) => {
   const db = req.db;
+  const id = parseInt(req.params.id);
+  const email = req.query.email;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
   try {
-    const id = parseInt(req.params.id);
-    const result = await db.collection("zestorecarts").deleteOne({ id });
+    const result = await db.collection("zestorecarts").deleteOne({ id, email });
 
     if (result.deletedCount === 1) {
       res.json({ success: true, message: "Cart item deleted successfully." });
@@ -19,55 +76,17 @@ router.delete("/zestorecarts/:id", async (req, res) => {
   }
 });
 
-// ✅ POST: Add product to cart (No session/email)
-router.post("/zestorecarts", async (req, res) => {
-  const db = req.db;
-  const { id, title, price, category, image, quantity, description } = req.body;
-
-  try {
-    const result = await db.collection("zestorecarts").insertOne({
-      id,
-      title,
-      price,
-      category,
-      image,
-      quantity,
-      description,
-      addedAt: new Date()
-    });
-
-    res.status(201).json({
-      success: true,
-      message: "Cart item successfully added.",
-      productId: result.insertedId
-    });
-  } catch (err) {
-    console.error("Insert error:", err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to add to cart.",
-      error: err.message
-    });
-  }
-});
-
-// ✅ GET: Fetch all cart items
-router.get("/zestorecarts", async (req, res) => {
-  const db = req.db;
-  try {
-    const cartItems = await db.collection("zestorecarts").find().toArray();
-    res.json(cartItems);
-  } catch (err) {
-    console.error("Fetch error:", err);
-    res.status(500).json({ success: false, message: "Failed to fetch cart." });
-  }
-});
-
-// ✅ DELETE: Clear entire cart (no session)
+// ✅ DELETE: Clear cart for a specific email
 router.delete("/zestorecarts/clear", async (req, res) => {
   const db = req.db;
+  const email = req.query.email;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
   try {
-    const result = await db.collection("zestorecarts").deleteMany({});
+    const result = await db.collection("zestorecarts").deleteMany({ email });
     res.json({ success: true, message: `${result.deletedCount} cart items deleted.` });
   } catch (err) {
     console.error("Clear error:", err);
@@ -75,15 +94,19 @@ router.delete("/zestorecarts/clear", async (req, res) => {
   }
 });
 
-// ✅ PUT: Update quantity (add or remove)
+// ✅ PUT: Update quantity (add or remove) for specific email
 router.put("/zestorecarts/:id", async (req, res) => {
   const db = req.db;
   const id = parseInt(req.params.id);
-  const { action } = req.body;
+  const { action, email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
 
   try {
     const cartsCollection = db.collection("zestorecarts");
-    const cartItem = await cartsCollection.findOne({ id });
+    const cartItem = await cartsCollection.findOne({ id, email });
 
     if (!cartItem) {
       return res.status(404).json({ error: "Item not found" });
@@ -98,29 +121,34 @@ router.put("/zestorecarts/:id", async (req, res) => {
     }
 
     if (updatedQty <= 0) {
-      await cartsCollection.deleteOne({ id });
+      await cartsCollection.deleteOne({ id, email });
     } else {
       await cartsCollection.updateOne(
-        { id },
+        { id, email },
         { $set: { quantity: updatedQty } }
       );
     }
 
-    const updatedCart = await cartsCollection.find().toArray();
+    const updatedCart = await cartsCollection.find({ email }).toArray();
     res.json(updatedCart);
-
   } catch (error) {
     console.error("PUT error:", error);
     res.status(500).json({ error: "Server error" });
   }
 });
 
-// ✅ PUT: Set quantity = 1 for all cart items
+// ✅ PUT: Set quantity = 1 for all items for a specific user
 router.put("/zestorecarts-update-all-quantity", async (req, res) => {
   const db = req.db;
+  const { email } = req.body;
+
+  if (!email) {
+    return res.status(400).json({ success: false, message: "Email is required" });
+  }
+
   try {
     const result = await db.collection("zestorecarts").updateMany(
-      {},
+      { email },
       { $set: { quantity: 1 } }
     );
     res.json({
