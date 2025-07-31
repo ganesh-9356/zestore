@@ -22,19 +22,19 @@ router.delete("/zestorecarts/:id", async (req, res) => {
 // ✅ POST: Add product to cart (No session/email)
 router.post("/zestorecarts", async (req, res) => {
   const db = req.db;
-  const { id, title, price, category, image, quantity,emailid,description } = req.body;
+  const { id, title, price, category, image, quantity,email,description } = req.body;
 
-  if(!id || !emailid ){
+  if(!id || !email ){
     return res.status(400).send('Missing id or emailid')
   }
 
   try {
     const cartcollections = db.collection('zestorecarts');
-    const existingitem = await cartcollections.findOne({id,emailid})
+    const existingitem = await cartcollections.findOne({id,email})
 
      if(existingitem){
       await cartcollections.updateOne(
-        {id,emailid},
+        {id,email},
         {$inc:{quantity:quantity || 1}}
       );
       return res.send('products quantity upadted in carts')
@@ -42,13 +42,13 @@ router.post("/zestorecarts", async (req, res) => {
     
      else{
       await cartcollections.insertOne({
-           id,
+      id,
       title,
       price,
       category,
       image,
       quantity:quantity || 1,
-      emailid,
+      email,
       description,
       addedAt: new Date()
       })
@@ -71,11 +71,11 @@ router.post("/zestorecarts", async (req, res) => {
 });
 
 // ✅ GET: Fetch all cart items
-router.get("/zestorecarts/:emailid", async (req, res) => {
+router.get("/zestorecarts/:email", async (req, res) => {
   const db = req.db;
-  const {emailid} = req.params
+  const {email} = req.params
   try {
-    const cartItems = await db.collection("zestorecarts").find({emailid}).toArray();
+    const cartItems = await db.collection("zestorecarts").find({email}).toArray();
     res.json(cartItems);
   } catch (err) {
     console.error("Fetch error:", err);
