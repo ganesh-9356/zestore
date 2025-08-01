@@ -22,23 +22,7 @@ router.delete("/zestorecarts/:id", async (req, res) => {
 // ✅ POST: Add product to cart (No session/email)
 router.post("/zestorecarts", async (req, res) => {
   const db = req.db;
-  const {
-    id,
-    title,
-    price,
-    category,
-    image,
-    quantity,
-    description,
-    email, // ✅ New: logged-in user’s email
-  } = req.body;
-
-  if (!email) {
-    return res.status(400).json({
-      success: false,
-      message: "Email is required to add to cart.",
-    });
-  }
+  const { id, title, price, category, image, quantity, description } = req.body;
 
   try {
     const result = await db.collection("zestorecarts").insertOne({
@@ -49,21 +33,20 @@ router.post("/zestorecarts", async (req, res) => {
       image,
       quantity,
       description,
-      email,             // ✅ Store user email
-      addedAt: new Date(),
+      addedAt: new Date()
     });
 
     res.status(201).json({
       success: true,
       message: "Cart item successfully added.",
-      productId: result.insertedId,
+      productId: result.insertedId
     });
   } catch (err) {
     console.error("Insert error:", err);
     res.status(500).json({
       success: false,
       message: "Failed to add to cart.",
-      error: err.message,
+      error: err.message
     });
   }
 });
@@ -71,20 +54,14 @@ router.post("/zestorecarts", async (req, res) => {
 // ✅ GET: Fetch all cart items
 router.get("/zestorecarts", async (req, res) => {
   const db = req.db;
-  const { email } = req.query; // ✅ Optional query param
-
   try {
-    const filter = email ? { email } : {}; // ✅ If email provided, filter
-
-    const cartItems = await db.collection("zestorecarts").find(filter).toArray();
-
+    const cartItems = await db.collection("zestorecarts").find().toArray();
     res.json(cartItems);
   } catch (err) {
     console.error("Fetch error:", err);
     res.status(500).json({ success: false, message: "Failed to fetch cart." });
   }
 });
-
 
 // ✅ DELETE: Clear entire cart (no session)
 router.delete("/zestorecarts/clear", async (req, res) => {
