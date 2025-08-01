@@ -16,28 +16,43 @@ router.post("/zestoreregister",async (req,res)=>{
 });
 
 router.post('/zestorelogin', async (req, res) => {
-    try {
-      
-        const database = req.db;
-        const usersCollection = await database.collection("zestoreusers");
+  try {
+    const db = req.db;
+    const usersCollection = db.collection("zestoreusers");
 
-        const { email, password } = req.body;
-        if (!email || !password) {
-            return res.status(400).json({ error: 'User ID and password are required' });
-        }
+    const { email, password } = req.body;
 
-        const user = await usersCollection.findOne({ email });
-        if (!user) {
-            return res.status(400).json({ error: 'User not found' });
-        }
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email and password are required' });
+    }
 
-        res.json({ message: 'Login successful' });
+    const user = await usersCollection.findOne({ email });
 
-    } catch (error) {
-        console.error(error);
-        res.status(500).json({ error: 'Internal server error' });
-    } 
+    if (!user) {
+      return res.status(401).json({ error: 'Email not found' });
+    }
+
+    if (user.password !== password) {
+      return res.status(401).json({ error: 'Invalid password' });
+    }
+
+    // ✅ Login successful
+    res.status(200).json({
+      message: 'Login successful',
+      user: {
+        username: user.username,
+        email: user.email,
+        mobile: user.mobile
+      }
+    });
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
 });
+
+
 
 router.get("/zestorelogin",async (req,res)=>{
   
